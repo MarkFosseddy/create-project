@@ -7,15 +7,14 @@ const GITHUB_CREATE_REPO_URL: &str = "https://api.github.com/user/repos";
 struct Config {
     projects_dir: String,
     github_api_key: String,
-    github_username: String,
-    allowed_languages: Vec<String>,
+    github_username: String
 }
 
 fn main() {
     let args: Vec<String> = std::env::args().collect();
-    if args.len() < 3 {
+    if args.len() < 2 {
         println!("Not enough arguments provided.");
-        println!("Example: create-project <programming_language> <project_name>");
+        println!("Example: create-project <project_name>");
         std::process::exit(0);
     }
 
@@ -27,6 +26,7 @@ fn main() {
             std::process::exit(0);
         }
     };
+
     let reader = std::io::BufReader::new(file);
     let mut config = Config::default();
 
@@ -40,9 +40,6 @@ fn main() {
             "githubAPIKey" => config.github_api_key = value,
             "githubUsername" => config.github_username = value,
             "projectsDir" => config.projects_dir = value,
-            "allowedLanguages" => {
-                config.allowed_languages = value.split(',').map(|v| v.to_string()).collect();
-            }
             _ => {
                 println!("Unknown config param: {}", key);
                 std::process::exit(0);
@@ -51,14 +48,7 @@ fn main() {
     }
 
     // CREATE PROJECT
-    let programming_language = &args[1];
-    let project_name = &args[2];
-
-    if !config.allowed_languages.contains(programming_language) {
-        println!("Unknown programming language: {}", programming_language);
-        println!("Allowed languages: {}", config.allowed_languages.join(", "));
-        std::process::exit(0);
-    }
+    let project_name = &args[1];
 
     println!("Creating github repository...");
 
@@ -83,17 +73,16 @@ fn main() {
     println!("Github repository successfully created.\n");
 
     // SHELL COMMANDS
-    let project_path = format!("{}/{}", config.projects_dir, programming_language);
-    let project_root = format!("{}/{}", project_path, project_name);
+    let project_path = format!("{}/{}", config.projects_dir, project_name);
 
-    println!("Cloning repository into {}...", project_root);
+    println!("Cloning repository into {}...", project_path);
 
-    if !std::path::Path::new(&project_path).exists() {
-        std::fs::create_dir(&project_path).expect("Error creating project directory");
+    if !std::path::Path::new(&config.projects_dir).exists() {
+        std::fs::create_dir(&config.projects_dir).expect("Error creating projects directory");
     }
 
     std::process::Command::new("git")
-        .current_dir(&project_path)
+        .current_dir(&config.projects_dir)
         .arg("clone")
         .arg(format!("git@github.com:{}/{}.git", config.github_username, project_name))
         .status()
@@ -102,7 +91,7 @@ fn main() {
     println!("\nCreating README.md and .gitignore...\n");
 
     std::process::Command::new("touch")
-        .current_dir(&project_root)
+        .current_dir(&project_path)
         .args(&["README.md", ".gitignore"])
         .status()
         .expect("Error executing shell command");
@@ -110,19 +99,19 @@ fn main() {
     println!("Pushing changes into the repository...");
 
     std::process::Command::new("git")
-        .current_dir(&project_root)
+        .current_dir(&project_path)
         .args(&["add", "."])
         .status()
         .expect("Error executing shell command");
 
     std::process::Command::new("git")
-        .current_dir(&project_root)
+        .current_dir(&project_path)
         .args(&["commit", "-m", "Initial commit"])
         .status()
         .expect("Error executing shell command");
 
     std::process::Command::new("git")
-        .current_dir(&project_root)
+        .current_dir(&project_path)
         .args(&["push", "origin", "master"])
         .status()
         .expect("Error executing shell command");

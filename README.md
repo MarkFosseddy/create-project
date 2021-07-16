@@ -3,8 +3,8 @@
 Shell command to create project
 
 ```console
-$ create-project <programming_language> <project_name>
-$ create-project javascript my-project
+$ create-project <project_name>
+$ create-project my-project
 ```
 
 * creates github repo
@@ -15,5 +15,4 @@ Needs config file $HOME/.config/create-project.config
 githubAPIKey = api_key
 githubUsername = username
 projectsDir = /path/to/dir
-allowedLanguages = lang1,lang2,lang3
 ```
